@@ -23,10 +23,9 @@ const prometheusURL = "http://localhost:9090"
 // QueryRequest represents the structure of the request received from the web interface.
 type QueryRequest struct {
 	Query string `json:"query"`
-	// Add other visualization parameters here, e.g.,
-	// Start string `json:"start"`
-	// End   string `json:"end"`
-	// Step  string `json:"step"`
+	Start string `json:"start"` // Start time in RFC3339 or Unix timestamp
+	End   string `json:"end"`   // End time in RFC3339 or Unix timestamp
+	Step  string `json:"step"`  // Step duration (e.g., "1m" for 1 minute)
 	Title string `json:"title"`
 }
 
@@ -70,16 +69,24 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate time range parameters
+	if req.Start == "" || req.End == "" || req.Step == "" {
+		http.Error(w, "Start, End, and Step parameters are required", http.StatusBadRequest)
+		return
+	}
+
 	// Construct the Prometheus API endpoint URL
-	prometheusQueryURL := fmt.Sprintf("%s/api/v1/query", prometheusURL)
+	prometheusQueryURL := fmt.Sprintf("%s/api/v1/query_range", prometheusURL)
 
 	// Create the request parameters for Prometheus
 	params := url.Values{}
 	params.Set("query", req.Query)
-	// Add other parameters if needed, e.g., start, end, step
+	params.Set("start", req.Start)
+	params.Set("end", req.End)
+	params.Set("step", req.Step)
 
-	// Make the POST request to Prometheus
-	resp, err := http.PostForm(prometheusQueryURL, params)
+	// Make the GET request to Prometheus
+	resp, err := http.Get(fmt.Sprintf("%s?%s", prometheusQueryURL, params.Encode()))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to connect to Prometheus: %v", err), http.StatusInternalServerError)
 		return
