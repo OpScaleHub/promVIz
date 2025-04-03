@@ -10,6 +10,9 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -110,14 +113,56 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set the Content-Type header to image/png
-	w.Header().Set("Content-Type", "image/png")
-
-	// Write the PNG image to the response writer
-	_, err = w.Write(img.Bytes())
+	// Upload the image directly to MinIO/S3
+	err = uploadToMinIO(img, req.Title, r)
 	if err != nil {
-		log.Printf("Failed to write image to response: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to upload PNG to MinIO: %v", err), http.StatusInternalServerError)
+		return
 	}
+
+	// Respond with success message
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Visualization successfully uploaded to MinIO"))
+}
+
+func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) error {
+	// Initialize MinIO client
+	endpoint := "localhost:9000"
+	accessKeyID := "minioadmin"
+	secretAccessKey := "minioadmin"
+	useSSL := false
+
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize MinIO client: %v", err)
+	}
+
+	// Define bucket and object name
+	bucketName := "visualizations"
+	objectName := fmt.Sprintf("%s-%s.png", title, uuid.New().String())
+
+	// Ensure the bucket exists
+	exists, err := minioClient.BucketExists(r.Context(), bucketName)
+	if err != nil {
+		return fmt.Errorf("failed to check bucket existence: %v", err)
+	}
+	if !exists {
+		err = minioClient.MakeBucket(r.Context(), bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %v", err)
+		}
+	}
+
+	// Upload the image buffer directly
+	_, err = minioClient.PutObject(r.Context(), bucketName, objectName, bytes.NewReader(img.Bytes()), int64(img.Len()), minio.PutObjectOptions{ContentType: "image/png"})
+	if err != nil {
+		return fmt.Errorf("failed to upload file to MinIO: %v", err)
+	}
+
+	return nil
 }
 
 func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer, error) {
