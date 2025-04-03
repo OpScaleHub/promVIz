@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -182,6 +185,13 @@ func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer
 	p.X.Label.Text = "Time"
 	p.Y.Label.Text = "Value"
 
+	// Set the aspect ratio to 16:9
+	width := vg.Points(800)  // 16 units
+	height := vg.Points(450) // 9 units
+
+	// Seed the random number generator for color generation
+	rand.Seed(time.Now().UnixNano())
+
 	if resp.Data.ResultType == "vector" {
 		for _, result := range resp.Data.Result {
 			if len(result.Value) == 2 {
@@ -202,6 +212,7 @@ func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer
 					return nil, fmt.Errorf("failed to create line plot: %v", err)
 				}
 				line.LineStyle.Width = vg.Points(2)
+				line.LineStyle.Color = randomColor() // Assign a random color
 				p.Add(line)
 			}
 		}
@@ -227,12 +238,13 @@ func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer
 				return nil, fmt.Errorf("failed to create line plot: %v", err)
 			}
 			line.LineStyle.Width = vg.Points(2)
+			line.LineStyle.Color = randomColor() // Assign a random color
 			p.Add(line)
 		}
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
-	writer, err := p.WriterTo(vg.Points(400), vg.Points(300), "png")
+	writer, err := p.WriterTo(width, height, "png") // Use the 16:9 aspect ratio
 	if err != nil {
 		return nil, fmt.Errorf("failed to create PNG writer: %v", err)
 	}
@@ -243,6 +255,16 @@ func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer
 	}
 
 	return buffer, nil
+}
+
+// randomColor generates a random color for the graph lines.
+func randomColor() color.Color {
+	return color.RGBA{
+		R: uint8(rand.Intn(256)),
+		G: uint8(rand.Intn(256)),
+		B: uint8(rand.Intn(256)),
+		A: 255,
+	}
 }
 
 func parseFloat(s string) (float64, error) {
