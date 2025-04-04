@@ -176,9 +176,13 @@ func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) (string, er
 		return "", fmt.Errorf("failed to upload file to MinIO: %v", err)
 	}
 
-	// Construct the object URL
-	objectURL := fmt.Sprintf("http://%s/%s/%s", endpoint, bucketName, objectName)
-	return objectURL, nil
+	// Generate a presigned URL valid for one week
+	presignedURL, err := minioClient.PresignedGetObject(r.Context(), bucketName, objectName, time.Hour*24*7, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned URL: %v", err)
+	}
+
+	return presignedURL.String(), nil
 }
 
 func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer, error) {
