@@ -6,7 +6,7 @@ PromViz is a tool for visualizing Prometheus query results as graphs and uploadi
 
 Below is an example visualization for the query `rate(container_cpu_usage_seconds_total{namespace="default"}[1m])`:
 
-![K8s CPU Usage in Default Namespace](K8s%20CPU%20Usage%20in%20Default%20Namespace-3e345927-294b-40fd-9f43-3f3fe27c6f84.png)
+![K8s CPU Usage in Default Namespace](K8sCPUUsageinDefaultNamespace.png)
 
 
 
