@@ -1,6 +1,11 @@
 # PromViz
 
-PromViz is a tool for visualizing Prometheus query results as graphs and uploading them to MinIO/S3 storage.
+PromViz is a tool to query Prometheus, generate visualizations, and upload them to MinIO with a time-based accessible link.
+
+## Features
+- Query Prometheus for time-series data.
+- Generate visualizations in PNG format.
+- Upload visualizations to MinIO with a presigned URL valid for one week.
 
 ## Example Visualization
 
@@ -8,7 +13,67 @@ Below is an example visualization for the query `rate(container_cpu_usage_second
 
 ![K8s CPU Usage in Default Namespace](K8sCPUUsageinDefaultNamespace.png)
 
+## Example Usage
 
+### Request
+You can use the following script (`test_query.sh`) to test the application:
+
+```bash
+#!/bin/bash
+
+curl -X POST http://localhost:8080/ \
+-H "Content-Type: application/json" \
+-d '{
+  "query": "rate(http_requests_total[5m])",
+  "start": "2025-04-01T00:00:00Z",
+  "end": "2025-04-01T01:00:00Z",
+  "step": "1m",
+  "title": "HTTP Requests Rate"
+}'
+```
+
+Save the script as `test_query.sh` and make it executable:
+```bash
+chmod +x test_query.sh
+```
+
+Run the script:
+```bash
+./test_query.sh
+```
+
+### Response
+The server will respond with a JSON object containing a success message and a presigned URL to the uploaded visualization:
+
+```json
+HTTP/1.1 200 OK
+Content-Length: 451
+Content-Type: application/json
+Date: Fri, 04 Apr 2025 05:30:47 GMT
+
+{
+    "message": "Visualization successfully uploaded to MinIO",
+    "url": "http://localhost:9000/visualizations/HTTP%20Requests%20Rate-85804e5d-f961-4599-b741-f800d20edab9.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250404%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250404T053047Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=ae12f86db331c4f009be3e4489c15cc9b96753b521233671dd9c095b1f0d353f"
+}
+```
+
+### Notes
+- The presigned URL is valid for one week (7 days).
+- Ensure MinIO is running and properly configured before using the application.
+- Update the `endpoint`, `accessKeyID`, and `secretAccessKey` in the code if your MinIO setup differs from the default configuration.
+
+## Requirements
+- Go 1.18+
+- Prometheus running at `http://localhost:9090`
+- MinIO running at `http://localhost:9000`
+
+## Running the Application
+Start the server:
+```bash
+go run main.go
+```
+
+The server will listen on `http://localhost:8080`.
 
 ## Project Redescription: Prometheus Query Visualization Service
 
