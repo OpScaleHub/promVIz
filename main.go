@@ -63,18 +63,18 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	var req QueryRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to decode request body: %v"}`, err), http.StatusBadRequest)
 		return
 	}
 
 	if req.Query == "" {
-		http.Error(w, "Query parameter cannot be empty", http.StatusBadRequest)
+		http.Error(w, `{"error": "Query parameter cannot be empty"}`, http.StatusBadRequest)
 		return
 	}
 
 	// Validate time range parameters
 	if req.Start == "" || req.End == "" || req.Step == "" {
-		http.Error(w, "Start, End, and Step parameters are required", http.StatusBadRequest)
+		http.Error(w, `{"error": "Start, End, and Step parameters are required"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -88,10 +88,13 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	params.Set("end", req.End)
 	params.Set("step", req.Step)
 
+	// Properly encode the URL
+	fullURL := fmt.Sprintf("%s?%s", prometheusQueryURL, params.Encode())
+
 	// Make the GET request to Prometheus
-	resp, err := http.Get(fmt.Sprintf("%s?%s", prometheusQueryURL, params.Encode()))
+	resp, err := http.Get(fullURL)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to connect to Prometheus: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to connect to Prometheus: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -99,7 +102,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the response body from Prometheus
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read Prometheus response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to read Prometheus response: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
@@ -107,35 +110,36 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	var promResp PrometheusResponse
 	err = json.Unmarshal(body, &promResp)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to decode Prometheus response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to decode Prometheus response: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	if promResp.Status != "success" {
-		http.Error(w, fmt.Sprintf("Prometheus error: %s - %s", promResp.ErrorType, promResp.Error), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Prometheus error: %s - %s"}`, promResp.ErrorType, promResp.Error), http.StatusInternalServerError)
 		return
 	}
 
 	// Generate the visualization based on the Prometheus response
 	img, err := generateVisualization(promResp, req.Title)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to generate visualization: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to generate visualization: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	// Upload the image directly to MinIO/S3
-	err = uploadToMinIO(img, req.Title, r)
+	objectURL, err := uploadToMinIO(img, req.Title, r)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to upload PNG to MinIO: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"error": "Failed to upload PNG to MinIO: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
-	// Respond with success message
+	// Respond with success message and MinIO URL
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Visualization successfully uploaded to MinIO"))
+	w.Write([]byte(fmt.Sprintf(`{"message": "Visualization successfully uploaded to MinIO", "url": "%s"}`, objectURL)))
 }
 
-func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) error {
+func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) (string, error) {
 	// Initialize MinIO client
 	endpoint := "localhost:9000"
 	accessKeyID := "minioadmin"
@@ -147,7 +151,7 @@ func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) error {
 		Secure: useSSL,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to initialize MinIO client: %v", err)
+		return "", fmt.Errorf("failed to initialize MinIO client: %v", err)
 	}
 
 	// Define bucket and object name
@@ -157,22 +161,24 @@ func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) error {
 	// Ensure the bucket exists
 	exists, err := minioClient.BucketExists(r.Context(), bucketName)
 	if err != nil {
-		return fmt.Errorf("failed to check bucket existence: %v", err)
+		return "", fmt.Errorf("failed to check bucket existence: %v", err)
 	}
 	if !exists {
 		err = minioClient.MakeBucket(r.Context(), bucketName, minio.MakeBucketOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to create bucket: %v", err)
+			return "", fmt.Errorf("failed to create bucket: %v", err)
 		}
 	}
 
 	// Upload the image buffer directly
 	_, err = minioClient.PutObject(r.Context(), bucketName, objectName, bytes.NewReader(img.Bytes()), int64(img.Len()), minio.PutObjectOptions{ContentType: "image/png"})
 	if err != nil {
-		return fmt.Errorf("failed to upload file to MinIO: %v", err)
+		return "", fmt.Errorf("failed to upload file to MinIO: %v", err)
 	}
 
-	return nil
+	// Construct the object URL
+	objectURL := fmt.Sprintf("http://%s/%s/%s", endpoint, bucketName, objectName)
+	return objectURL, nil
 }
 
 func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer, error) {
