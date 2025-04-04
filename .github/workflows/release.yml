@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.23
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Build for Linux
+      run: |
+        GOOS=linux GOARCH=amd64 go build -o promViz-linux-amd64
+
+    - name: Build for macOS
+      run: |
+        GOOS=darwin GOARCH=amd64 go build -o promViz-darwin-amd64
+
+    - name: Build for Windows
+      run: |
+        GOOS=windows GOARCH=amd64 go build -o promViz-windows-amd64.exe
+
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./promViz-linux-amd64
+        asset_name: promViz-linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS binary
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./promViz-darwin-amd64
+        asset_name: promViz-darwin-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows binary
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./promViz-windows-amd64.exe
+        asset_name: promViz-windows-amd64.exe
+        asset_content_type: application/octet-stream
