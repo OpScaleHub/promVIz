@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.3.0...v1.3.1) (2025-04-05)
+
+
+### Bug Fixes
+
+* improve error handling in release workflow ([232f940](https://github.com/OpScaleHub/prometheusSnapshot/commit/232f940665aa6ecd98847d04e96b5e07091ee280))
+
 # [1.3.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.2.0...v1.3.0) (2025-04-05)
 
 
