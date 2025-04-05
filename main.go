@@ -256,7 +256,7 @@ func generateVisualization(resp PrometheusResponse, title string) (*bytes.Buffer
 	buffer := bytes.NewBuffer([]byte{})
 	writer, err := p.WriterTo(width, height, "png") // Use the 16:9 aspect ratio
 	if err != nil {
-		return nil, fmt.Errorf("failed to create PNG writer: %v", err)
+		return nil, fmt.Errorf("failed to create PNG writer:-? %v", err)
 	}
 
 	_, err = writer.WriteTo(buffer)
