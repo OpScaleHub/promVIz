@@ -141,17 +141,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ needs.release.outputs.release_id }}
         run: |
+          if [ -z "${{ env.RELEASE_ID }}" ]; then
+            echo "Error: RELEASE_ID is not set."
+            exit 1
+          fi
           if [[ "${{ needs.build.outputs.build_success }}" == "true" ]]; then
-            # Publish the release
-            gh api \
-              --method PATCH \
-              /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} \
-              -f draft=false
+            echo "Publishing the release"
+            gh api --method PATCH /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} -f draft=false || { echo "Failed to publish release"; exit 1; }
           else
-            # Delete the draft release and tag
-            gh api \
-              --method DELETE \
-              /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}
+            echo "Deleting the draft release and tag"
+            gh api --method DELETE /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} || { echo "Failed to delete release"; exit 1; }
             git push --delete origin v${{ needs.release.outputs.new_release_version }}
           fi
 
