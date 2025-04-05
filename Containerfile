@@ -21,13 +21,13 @@ FROM alpine:3.18
 WORKDIR /app
 
 # Add non root user
-RUN adduser -D -g '' appuser
+RUN snapshotter -D -g '' snapshotter
 
 # Copy binary from builder
 COPY --from=builder /app/main .
 
 # Use non root user
-USER appuser
+USER snapshotter
 
 # Command to run
 ENTRYPOINT ["/app/main"]
