@@ -25,13 +25,13 @@ WORKDIR /app
 COPY --from=builder /app/snapshotter /usr/local/bin/snapshotter
 
 # Add non root user
-RUN snapshotter -D -g '' snapshotter
+RUN adduser -D -g '' snapshotter
 
-# Copy binary from builder
-COPY --from=builder /app/snapshotter .
+# Set directory permissions
+RUN chown -R snapshotter:snapshotter /app
 
 # Use non root user
 USER snapshotter
 
 # Command to run
-ENTRYPOINT ["/app/snapshotter"]
+ENTRYPOINT ["/usr/local/bin/snapshotter"]
