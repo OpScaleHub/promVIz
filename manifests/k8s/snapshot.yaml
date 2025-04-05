@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheussnapshot
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: prometheussnapshot
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheussnapshot
+spec:
+  selector:
+    matchLabels:
+      app: prometheussnapshot
+  template:
+    metadata:
+      labels:
+        app: prometheussnapshot
+    spec:
+      containers:
+      - name: prometheussnapshot
+        image: ghcr.io/opscalehub/prometheussnapshot:main
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MINIO_ENDPOINT
+          value: "minio:9000"
+        - name: MINIO_ACCESS_KEY
+          value: "minioadmin"
+        - name: MINIO_SECRET_KEY
+          value: "minioadmin"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "10m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
