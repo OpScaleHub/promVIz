@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.2.0...v1.3.0) (2025-04-05)
+
+
+### Features
+
+* **ci:** update GitHub Actions workflow for releases ([e340daa](https://github.com/OpScaleHub/prometheusSnapshot/commit/e340daa3bee0de4155cbecf28cc0307bb0e49818))
+
 # [1.2.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.1.0...v1.2.0) (2025-04-05)
 
 
