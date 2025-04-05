@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.0.1...v1.1.0) (2025-04-05)
+
+
+### Features
+
+* **k8s:** add MinIO and Prometheus Snapshot deployments ([ac491c8](https://github.com/OpScaleHub/prometheusSnapshot/commit/ac491c81fe2c255bbda0aef51fb6436155516c9e))
+
 ## [1.0.1](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.0.0...v1.0.1) (2025-04-05)
 
 
