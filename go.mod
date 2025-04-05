@@ -1,4 +1,4 @@
-module github.com/OpScaleHub/prometheus-sharable-snapshot
+module github.com/OpScaleHub/prometheusSnapshot
 
 go 1.23.0
 
