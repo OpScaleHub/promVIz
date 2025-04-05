@@ -64,6 +64,8 @@ jobs:
       id-token: write
     outputs:
       build_success: ${{ steps.build-status.outputs.success }}
+      image_tags: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build-and-push.outputs.digest }}
 
     steps:
       - name: Checkout repository
@@ -156,8 +158,8 @@ jobs:
       - name: Sign the published Docker image
         if: needs.build.outputs.build_success == 'true'
         env:
-          TAGS: ${{ needs.meta.outputs.tags }}
-          DIGEST: ${{ needs.build.outputs.digest }}
+          TAGS: ${{ needs.build.outputs.image_tags }}
+          DIGEST: ${{ needs.build.outputs.image_digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
   promote-to-rc:
