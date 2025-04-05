@@ -30,36 +30,36 @@ jobs:
 
     - name: Build for Linux
       run: |
-        GOOS=linux GOARCH=amd64 go build -o promViz-linux-amd64
+        GOOS=linux GOARCH=amd64 go build -o prometheus-snapshot-share-linux-amd64
 
     - name: Build for macOS
       run: |
-        GOOS=darwin GOARCH=amd64 go build -o promViz-darwin-amd64
+        GOOS=darwin GOARCH=amd64 go build -o prometheus-snapshot-share-darwin-amd64
 
     - name: Build for Windows
       run: |
-        GOOS=windows GOARCH=amd64 go build -o promViz-windows-amd64.exe
+        GOOS=windows GOARCH=amd64 go build -o prometheus-snapshot-share-windows-amd64.exe
 
     - name: Upload release assets
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./promViz-linux-amd64
-        asset_name: promViz-linux-amd64
+        asset_path: ./prometheus-snapshot-share-linux-amd64
+        asset_name: prometheus-snapshot-share-linux-amd64
         asset_content_type: application/octet-stream
 
     - name: Upload macOS binary
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./promViz-darwin-amd64
-        asset_name: promViz-darwin-amd64
+        asset_path: ./prometheus-snapshot-share-darwin-amd64
+        asset_name: prometheus-snapshot-share-darwin-amd64
         asset_content_type: application/octet-stream
 
     - name: Upload Windows binary
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./promViz-windows-amd64.exe
-        asset_name: promViz-windows-amd64.exe
+        asset_path: ./prometheus-snapshot-share-windows-amd64.exe
+        asset_name: prometheus-snapshot-share-windows-amd64.exe
         asset_content_type: application/octet-stream
