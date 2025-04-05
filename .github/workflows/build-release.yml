@@ -28,6 +28,7 @@ jobs:
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      release_id: ${{ steps.semantic.outputs.release_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,6 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           branch: main
+          draft: true # Create release as draft initially
           extra_plugins: |
             @semantic-release/git
             @semantic-release/changelog
@@ -60,6 +62,8 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
+    outputs:
+      build_success: ${{ steps.build-status.outputs.success }}
 
     steps:
       - name: Checkout repository
@@ -111,23 +115,46 @@ jobs:
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' && needs.release.outputs.new_release_published == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
+      - name: Set build status
+        id: build-status
+        if: success()
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  validate-release:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: needs.release.outputs.new_release_published == 'true'
+    steps:
+      - name: Publish or rollback release
         env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.release.outputs.release_id }}
+        run: |
+          if [[ "${{ needs.build.outputs.build_success }}" == "true" ]]; then
+            # Publish the release
+            gh api \
+              --method PATCH \
+              /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} \
+              -f draft=false
+          else
+            # Delete the draft release and tag
+            gh api \
+              --method DELETE \
+              /repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}
+            git push --delete origin v${{ needs.release.outputs.new_release_version }}
+          fi
+
+      - name: Sign the published Docker image
+        if: needs.build.outputs.build_success == 'true'
+        env:
+          TAGS: ${{ needs.meta.outputs.tags }}
+          DIGEST: ${{ needs.build.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
