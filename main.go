@@ -36,7 +36,12 @@ func loadConfig() (*Config, error) {
 		MinioEndpoint:  getEnvOrDefault("MINIO_ENDPOINT", "localhost:9000"),
 		MinioAccessKey: getEnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
 		MinioSecretKey: getEnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
-		MinioUseSSL:    os.Getenv("MINIO_USE_SSL") == "true",
+		MinioUseSSL:    func() bool {
+			if value, err := strconv.ParseBool(os.Getenv("MINIO_USE_SSL")); err == nil {
+				return value
+			}
+			return false
+		}(),
 	}
 
 	// Validate required configurations
