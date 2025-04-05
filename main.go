@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 
@@ -21,7 +22,48 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-const prometheusURL = "http://localhost:9090"
+type Config struct {
+	PrometheusURL  string
+	MinioEndpoint  string
+	MinioAccessKey string
+	MinioSecretKey string
+	MinioUseSSL    bool
+}
+
+func loadConfig() (*Config, error) {
+	cfg := &Config{
+		PrometheusURL:  getEnvOrDefault("PROMETHEUS_URL", "http://localhost:9090"),
+		MinioEndpoint:  getEnvOrDefault("MINIO_ENDPOINT", "localhost:9000"),
+		MinioAccessKey: getEnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey: getEnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
+		MinioUseSSL:    os.Getenv("MINIO_USE_SSL") == "true",
+	}
+
+	// Validate required configurations
+	if cfg.PrometheusURL == "" {
+		return nil, fmt.Errorf("PROMETHEUS_URL is required")
+	}
+	if cfg.MinioEndpoint == "" {
+		return nil, fmt.Errorf("MINIO_ENDPOINT is required")
+	}
+	if cfg.MinioAccessKey == "" {
+		return nil, fmt.Errorf("MINIO_ACCESS_KEY is required")
+	}
+	if cfg.MinioSecretKey == "" {
+		return nil, fmt.Errorf("MINIO_SECRET_KEY is required")
+	}
+
+	return cfg, nil
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+var config *Config
 
 // QueryRequest represents the structure of the request received from the web interface.
 type QueryRequest struct {
@@ -48,6 +90,12 @@ type PrometheusResponse struct {
 }
 
 func main() {
+	var err error
+	config, err = loadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
 	http.HandleFunc("/", queryHandler)
 	fmt.Println("Server listening on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -79,7 +127,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Construct the Prometheus API endpoint URL
-	prometheusQueryURL := fmt.Sprintf("%s/api/v1/query_range", prometheusURL)
+	prometheusQueryURL := fmt.Sprintf("%s/api/v1/query_range", config.PrometheusURL)
 
 	// Create the request parameters for Prometheus
 	params := url.Values{}
@@ -141,14 +189,9 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 
 func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) (string, error) {
 	// Initialize MinIO client
-	endpoint := "localhost:9000"
-	accessKeyID := "minioadmin"
-	secretAccessKey := "minioadmin"
-	useSSL := false
-
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+	minioClient, err := minio.New(config.MinioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.MinioAccessKey, config.MinioSecretKey, ""),
+		Secure: config.MinioUseSSL,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to initialize MinIO client: %v", err)
