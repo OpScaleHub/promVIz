@@ -48,10 +48,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           branch: main
-          draft: true # Create release as draft initially
           extra_plugins: |
             @semantic-release/git
             @semantic-release/changelog
+            @semantic-release/github
 
   build:
     needs: release
