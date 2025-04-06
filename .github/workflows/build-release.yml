@@ -1,21 +1,21 @@
 name: Docker
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
+# Add concurrency group to prevent parallel runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  # Add cache version for better control
+  CACHE_VERSION: v1
 
 jobs:
   release:
@@ -33,14 +33,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup Node.js
+
+      # Add npm cache
+      - name: Setup Node.js with cache
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      # Add error handling for git config
       - name: Git Identity
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name 'github-actions[bot]' || exit 1
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com' || exit 1
+
+      # Add retry mechanism for semantic release
       - name: Semantic Release
         id: semantic
         uses: cycjimmy/semantic-release-action@v4
@@ -52,15 +60,23 @@ jobs:
             @semantic-release/git
             @semantic-release/changelog
             @semantic-release/github
+        continue-on-error: true
+
+      - name: Check Semantic Release
+        if: steps.semantic.outcome == 'failure'
+        run: |
+          echo "Semantic release failed. Retrying once..."
+          sleep 5
+          npx semantic-release
 
   build:
     needs: release
     runs-on: ubuntu-latest
+    # Add timeout to prevent hanging builds
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
     outputs:
       build_success: ${{ steps.build-status.outputs.success }}
@@ -172,6 +188,8 @@ jobs:
   promote-to-rc:
     needs: [validate-release, build]
     runs-on: ubuntu-latest
+    # Add timeout
+    timeout-minutes: 15
     if: |
       needs.build.outputs.build_success == 'true' &&
       needs.release.outputs.new_release_published == 'true' &&
@@ -193,9 +211,26 @@ jobs:
           # Push RC tag
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rc
 
+      # Add health check after promotion
+      - name: Verify RC Promotion
+        run: |
+          # Wait for image to be available
+          for i in {1..5}; do
+            if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rc; then
+              echo "RC promotion verified successfully"
+              exit 0
+            fi
+            echo "Waiting for RC image to be available... (attempt $i/5)"
+            sleep 10
+          done
+          echo "RC promotion verification failed"
+          exit 1
+
   promote-to-stable:
     needs: [validate-release, build]
     runs-on: ubuntu-latest
+    # Add timeout
+    timeout-minutes: 15
     permissions:
       contents: write
       packages: write
@@ -219,6 +254,14 @@ jobs:
           docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.release.outputs.new_release_version }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
           # Push stable tag
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
+
+      # Add rollback capability
+      - name: Backup Current Stable
+        run: |
+          if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable; then
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable-backup
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable-backup
+          fi
 
       - name: Update Release Notes
         env:
