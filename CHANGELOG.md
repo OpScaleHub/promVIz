@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.4.1...v1.5.0) (2025-04-06)
+
+
+### Features
+
+* add MinioBucket configuration to support dynamic bucket ([00fdd85](https://github.com/OpScaleHub/prometheusSnapshot/commit/00fdd85b39d36693445eba6300ab2de774c76644))
+
 ## [1.4.1](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.4.0...v1.4.1) (2025-04-06)
 
 
