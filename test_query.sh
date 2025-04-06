@@ -8,7 +8,7 @@ END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 STEP="60s"
 
 # Send the POST request using httpie
-http POST http://localhost:8080/ \
+http POST https://prometheussnapshot.local.opscale.ir \
     Content-Type:application/json \
     query="$PROM_QUERY" \
     title="$TITLE" \

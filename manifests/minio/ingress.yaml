@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - host: minio.local.opscale.ir
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  number: 9000
+          # - path: /console
+          #   pathType: Prefix
+          #   backend:
+          #     service:
+          #       name: minio
+          #       port:
+          #         number: 9001
+  tls:
+    - hosts:
+        - minio.local.opscale.ir
+      secretName: wildcard-tls-secret
