@@ -28,6 +28,7 @@ type Config struct {
 	MinioAccessKey string
 	MinioSecretKey string
 	MinioUseSSL    bool
+	MinioBucket    string
 }
 
 func loadConfig() (*Config, error) {
@@ -36,7 +37,8 @@ func loadConfig() (*Config, error) {
 		MinioEndpoint:  getEnvOrDefault("MINIO_ENDPOINT", "localhost:9000"),
 		MinioAccessKey: getEnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
 		MinioSecretKey: getEnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
-		MinioUseSSL:    func() bool {
+		MinioBucket:    getEnvOrDefault("MINIO_BUCKET", "prometheus-snapshots"),
+		MinioUseSSL: func() bool {
 			if value, err := strconv.ParseBool(os.Getenv("MINIO_USE_SSL")); err == nil {
 				return value
 			}
@@ -202,8 +204,8 @@ func uploadToMinIO(img *bytes.Buffer, title string, r *http.Request) (string, er
 		return "", fmt.Errorf("failed to initialize MinIO client: %v", err)
 	}
 
-	// Define bucket and object name
-	bucketName := "visualizations"
+	// Use the configured bucket name
+	bucketName := config.MinioBucket
 	objectName := fmt.Sprintf("%s-%s.png", title, uuid.New().String())
 
 	// Ensure the bucket exists
