@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.3.1...v1.4.0) (2025-04-06)
+
+
+### Features
+
+* **snapshot:** add Prometheus snapshot deployment and ingress ([c8bd326](https://github.com/OpScaleHub/prometheusSnapshot/commit/c8bd326e43a68b95b3a0d9ba1413427003d0b462))
+
 ## [1.3.1](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.3.0...v1.3.1) (2025-04-05)
 
 
