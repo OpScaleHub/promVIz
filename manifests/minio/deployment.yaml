@@ -1,18 +1,3 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-spec:
-  ports:
-    - port: 9000
-      targetPort: 9000
-      name: api
-    - port: 9001
-      targetPort: 9001
-      name: console
-  selector:
-    app: minio
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,14 +22,16 @@ spec:
         - --console-address
         - ":9001"
         env:
-        - name: MINIO_ROOT_USER
-          value: "minioadmin"
-        - name: MINIO_ROOT_PASSWORD
-          value: "minioadmin"
-        - name: MINIO_PUBLIC_URL
-          value: "http://minio.example.com:9000"  # Replace with your public MinIO URL
+        - name:  MINIO_ROOT_USER
+          value: prometheus-snapshotter
+        - name:  MINIO_ROOT_PASSWORD
+          value: 9aa5782a-9e0c-4396-99ae-c8955f03f88c
+        - name: MINIO_SERVER_URL
+          value: https://minio.local.opscale.ir
         - name: MINIO_BROWSER_REDIRECT_URL
-          value: "http://minio-console.example.com:9001"  # Replace with your public console URL
+          value: https://minio.local.opscale.ir/console
+        - name: MINIO_PUBLIC_URL
+          value: https://minio.local.opscale.ir
         ports:
         - containerPort: 9000
           name: api
