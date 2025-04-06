@@ -14,7 +14,7 @@ spec:
       containers:
       - name: prometheussnapshot
         image: ghcr.io/opscalehub/prometheussnapshot:main
-        pullPolicy: Always
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
