@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.4.0...v1.4.1) (2025-04-06)
+
+
+### Bug Fixes
+
+* rename MINIO_URL to MINIO_ENDPOINT in deployment.yaml ([e7fa5f7](https://github.com/OpScaleHub/prometheusSnapshot/commit/e7fa5f7a2c8ad78e757fd7b2a6bbc40a1e51a7ee))
+
 # [1.4.0](https://github.com/OpScaleHub/prometheusSnapshot/compare/v1.3.1...v1.4.0) (2025-04-06)
 
 
