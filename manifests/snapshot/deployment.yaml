@@ -18,7 +18,7 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name:  MINIO_URL
+        - name:  MINIO_ENDPOINT
           value: http://minio:9000
         - name:  MINIO_ACCESS_KEY
           value: prometheus-snapshotter
