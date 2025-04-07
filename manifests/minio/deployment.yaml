@@ -26,11 +26,11 @@ spec:
           value: prometheus-snapshotter
         - name:  MINIO_ROOT_PASSWORD
           value: 9aa5782a-9e0c-4396-99ae-c8955f03f88c
-        - name: MINIO_SERVER_URL
+        - name:  MINIO_SERVER_URL
           value: https://minio.local.opscale.ir
-        - name: MINIO_BROWSER_REDIRECT_URL
+        - name:  MINIO_BROWSER_REDIRECT_URL
           value: https://minio.local.opscale.ir/console
-        - name: MINIO_PUBLIC_URL
+        - name:  MINIO_PUBLIC_URL
           value: https://minio.local.opscale.ir
         ports:
         - containerPort: 9000
