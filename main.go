@@ -38,10 +38,10 @@ type Config struct {
 
 func loadConfig() (*Config, error) {
 	cfg := &Config{
-		PrometheusURL:  getEnvOrDefault("PROMETHEUS_URL", "https://promethues.local.opscale.ir"),
-		MinioEndpoint:  getEnvOrDefault("MINIO_ENDPOINT", "https://minio.local.opscale.ir"),
-		MinioAccessKey: getEnvOrDefault("MINIO_ACCESS_KEY", "prometheus-snapshotter"),
-		MinioSecretKey: getEnvOrDefault("MINIO_SECRET_KEY", "9aa5782a-9e0c-4396-99ae-c8955f03f88c"),
+		PrometheusURL:  getEnvOrDefault("PROMETHEUS_URL", "http://localhost:9090"),
+		MinioEndpoint:  getEnvOrDefault("MINIO_ENDPOINT", "localhost:9000"),
+		MinioAccessKey: getEnvOrDefault("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey: getEnvOrDefault("MINIO_SECRET_KEY", "minioadmin"),
 		MinioBucket:    getEnvOrDefault("MINIO_BUCKET", "prometheus-snapshots"),
 		MinioUseSSL: func() bool {
 			_, err := strconv.ParseBool(os.Getenv("MINIO_USE_SSL"))

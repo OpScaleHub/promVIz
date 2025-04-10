@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the query parameters
-PROM_QUERY='rate(container_cpu_usage_seconds_total{}[1m])'
+PROM_QUERY='rate(container_cpu_usage_seconds_total{namespace="default"}[1m])'
 TITLE="K8s CPU Usage in Default Namespace"
 START=$(date -u -d '1 hour ago' +"%Y-%m-%dT%H:%M:%SZ")
 END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
